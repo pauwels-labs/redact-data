@@ -11,6 +11,13 @@ pub struct DataCollection {
 pub struct Data {
     pub path: DataPath,
     pub value: Value,
+    pub encryptedby: Vec<String>,
+}
+
+impl Display for Data {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value.to_string())
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
