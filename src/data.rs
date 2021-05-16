@@ -7,7 +7,7 @@ pub struct DataCollection {
     pub data: Vec<Data>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Data {
     pub path: DataPath,
     pub value: Value,
@@ -20,7 +20,7 @@ impl Display for Data {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct DataPath {
     #[serde(deserialize_with = "DataPath::deserialize_path")]
     path: String,
