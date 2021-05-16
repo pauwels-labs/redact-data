@@ -7,7 +7,7 @@ pub struct DataCollection {
     pub data: Vec<Data>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Data {
     pub path: DataPath,
     pub value: Value,
