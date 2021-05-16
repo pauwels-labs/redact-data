@@ -44,7 +44,7 @@ impl DataStorer for MongoDataStorer {
         {
             Ok(Some(data)) => Ok(data),
             Ok(None) => Err(StorageError::NotFound),
-            Err(e) => Err(StorageError::DbError {
+            Err(e) => Err(StorageError::InternalError {
                 source: Box::new(e),
             }),
         }
@@ -75,7 +75,7 @@ impl DataStorer for MongoDataStorer {
                 }
                 Ok(DataCollection { data })
             }
-            Err(e) => Err(StorageError::DbError {
+            Err(e) => Err(StorageError::InternalError {
                 source: Box::new(e),
             }),
         }
@@ -94,7 +94,7 @@ impl DataStorer for MongoDataStorer {
             .await
         {
             Ok(_) => Ok(true),
-            Err(e) => Err(StorageError::DbError {
+            Err(e) => Err(StorageError::InternalError {
                 source: Box::new(e),
             }),
         }

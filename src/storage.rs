@@ -1,10 +1,10 @@
 pub mod error;
 pub mod mongodb;
+pub mod redact;
 
-pub use self::mongodb::MongoDataStorer;
+pub use self::{error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer};
 use crate::data::{Data, DataCollection};
 use async_trait::async_trait;
-pub use error::StorageError;
 
 #[async_trait]
 pub trait DataStorer: Clone + Send + Sync {
