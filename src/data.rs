@@ -26,6 +26,12 @@ pub struct DataPath {
     path: String,
 }
 
+impl From<&str> for DataPath {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+
 impl DataPath {
     pub fn new(path: &str) -> Self {
         let path = Self::validate_path(path);
