@@ -118,3 +118,9 @@ impl<'a> From<&'a str> for DataPath {
         Self::new(path)
     }
 }
+
+impl From<String> for DataPath {
+    fn from(path: String) -> Self {
+        Self::new(&path)
+    }
+}
