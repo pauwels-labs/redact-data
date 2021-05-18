@@ -1,4 +1,5 @@
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
+use serde_json::Value;
 use std::fmt::{self, Debug, Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,7 +26,7 @@ impl Display for Data {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(into = "String", from = "String")]
+#[serde(into = "String", from = "Value")]
 pub enum DataValue {
     Bool(bool),
     U64(u64),
@@ -59,6 +60,12 @@ impl From<String> for DataValue {
         } else {
             DataValue::String(s)
         }
+    }
+}
+
+impl From<Value> for DataValue {
+    fn from(v: Value) -> Self {
+        DataValue::from(v.as_str().unwrap_or("").to_owned())
     }
 }
 
