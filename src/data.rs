@@ -15,7 +15,7 @@ pub struct Data {
     )]
     pub path: DataPath,
     pub value: Value,
-    pub encryptedby: Vec<String>,
+    pub encryptedby: Option<Vec<String>>,
 }
 
 impl Display for Data {
