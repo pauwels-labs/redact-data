@@ -82,9 +82,16 @@ impl Display for DataValue {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[serde(into = "String", from = "String")]
 pub struct DataPath {
     #[serde(deserialize_with = "DataPath::deserialize_path")]
     path: String,
+}
+
+impl From<DataPath> for String {
+    fn from(dp: DataPath) -> Self {
+        dp.to_string()
+    }
 }
 
 impl DataPath {
@@ -196,6 +203,6 @@ impl<'a> From<&'a str> for DataPath {
 
 impl From<String> for DataPath {
     fn from(path: String) -> Self {
-        Self::new(&path)
+        Self::from(path.as_ref())
     }
 }
