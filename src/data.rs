@@ -1,5 +1,4 @@
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
-use serde_json::Value;
 use std::fmt::{self, Debug, Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -14,13 +13,42 @@ pub struct Data {
         deserialize_with = "DataPath::deserialize_datapath"
     )]
     pub path: DataPath,
-    pub value: Value,
+    pub value: DataValue,
     pub encryptedby: Option<Vec<String>>,
 }
 
 impl Display for Data {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value.to_string())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum DataValue {
+    Null,
+    Bool(bool),
+    U64(u64),
+    I64(i64),
+    F64(f64),
+    String(String),
+}
+
+impl Default for DataValue {
+    fn default() -> Self {
+        Self::Null
+    }
+}
+
+impl Display for DataValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            DataValue::Null => write!(f, ""),
+            DataValue::Bool(ref b) => write!(f, "{}", b),
+            DataValue::U64(ref n) => write!(f, "{}", n),
+            DataValue::I64(ref n) => write!(f, "{}", n),
+            DataValue::F64(ref n) => write!(f, "{}", n),
+            DataValue::String(ref s) => write!(f, "{}", s),
+        }
     }
 }
 
