@@ -13,6 +13,7 @@ pub struct Data {
         deserialize_with = "DataPath::deserialize_datapath"
     )]
     pub path: DataPath,
+    #[serde(default)]
     pub value: DataValue,
     pub encryptedby: Option<Vec<String>>,
 }
