@@ -1,5 +1,5 @@
 use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::fmt::{self, Debug, Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,7 +25,7 @@ impl Display for Data {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(into = "String", from = "String")]
+#[serde(into = "String", from = "Value")]
 pub enum DataValue {
     Null,
     Bool(bool),
@@ -47,9 +47,8 @@ impl From<DataValue> for String {
     }
 }
 
-impl From<String> for DataValue {
-    fn from(s: String) -> Self {
-        let json_val: Value = json!(s);
+impl From<Value> for DataValue {
+    fn from(json_val: Value) -> Self {
         if let Some(b) = json_val.as_bool() {
             DataValue::Bool(b)
         } else if let Some(n) = json_val.as_u64() {
@@ -58,8 +57,10 @@ impl From<String> for DataValue {
             DataValue::I64(n)
         } else if let Some(n) = json_val.as_f64() {
             DataValue::F64(n)
+        } else if let Some(s) = json_val.as_str() {
+            DataValue::String(s.to_owned())
         } else {
-            DataValue::String(s)
+            DataValue::String(json_val.to_string())
         }
     }
 }
