@@ -1,4 +1,4 @@
-use serde::{de::Deserializer, Deserialize, Serialize};
+use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{self, Debug, Display, Formatter};
 
@@ -9,6 +9,10 @@ pub struct DataCollection {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Data {
+    #[serde(
+        serialize_with = "DataPath::serialize_datapath",
+        deserialize_with = "DataPath::deserialize_datapath"
+    )]
     pub path: DataPath,
     pub value: Value,
     pub encryptedby: Vec<String>,
@@ -30,6 +34,20 @@ impl DataPath {
     pub fn new(path: &str) -> Self {
         let path = Self::validate_path(path);
         Self { path }
+    }
+
+    fn serialize_datapath<S>(dp: &Self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        s.serialize_str(&dp.to_string())
+    }
+
+    fn deserialize_datapath<'de, D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self::new(&String::deserialize(deserializer)?))
     }
 
     fn deserialize_path<'de, D>(deserializer: D) -> Result<String, D::Error>

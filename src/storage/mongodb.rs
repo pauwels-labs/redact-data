@@ -34,7 +34,7 @@ impl MongoDataStorer {
 impl DataStorer for MongoDataStorer {
     async fn get(&self, path: &str) -> Result<Data, StorageError> {
         let filter_options = FindOneOptions::builder().build();
-        let filter = bson::doc! { "path": { "path": path } };
+        let filter = bson::doc! { "path": path };
 
         match self
             .db
@@ -60,7 +60,7 @@ impl DataStorer for MongoDataStorer {
             .skip(skip)
             .limit(page_size)
             .build();
-        let filter = bson::doc! { "path": { "path": path } };
+        let filter = bson::doc! { "path": path };
 
         match self
             .db
@@ -85,7 +85,7 @@ impl DataStorer for MongoDataStorer {
         let filter_options = mongodb::options::ReplaceOptions::builder()
             .upsert(true)
             .build();
-        let filter = bson::doc! { "path": { "path": data.path.to_string() } };
+        let filter = bson::doc! { "path": data.path.to_string() };
 
         match self
             .db
