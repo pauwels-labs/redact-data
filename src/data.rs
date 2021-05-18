@@ -26,7 +26,6 @@ impl Display for Data {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(into = "String", from = "String")]
 pub enum DataValue {
-    Null,
     Bool(bool),
     U64(u64),
     I64(i64),
@@ -36,7 +35,7 @@ pub enum DataValue {
 
 impl Default for DataValue {
     fn default() -> Self {
-        Self::Null
+        Self::Bool(false)
     }
 }
 
@@ -65,7 +64,6 @@ impl From<String> for DataValue {
 impl Display for DataValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match *self {
-            DataValue::Null => write!(f, ""),
             DataValue::Bool(ref b) => write!(f, "{}", b),
             DataValue::U64(ref n) => write!(f, "{}", n),
             DataValue::I64(ref n) => write!(f, "{}", n),
