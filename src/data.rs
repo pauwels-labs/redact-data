@@ -65,7 +65,7 @@ impl From<String> for DataValue {
 
 impl From<Value> for DataValue {
     fn from(v: Value) -> Self {
-        DataValue::from(v.as_str().unwrap_or("").to_owned())
+        DataValue::from(v.as_str().unwrap_or(&v.to_string()).to_owned())
     }
 }
 
