@@ -9,10 +9,10 @@ pub struct DataCollection {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Data {
-    #[serde(
-        serialize_with = "DataPath::serialize_datapath",
-        deserialize_with = "DataPath::deserialize_datapath"
-    )]
+    // #[serde(
+    //     serialize_with = "DataPath::serialize_datapath",
+    //     deserialize_with = "DataPath::deserialize_datapath"
+    // )]
     pub path: DataPath,
     #[serde(default)]
     pub value: DataValue,
