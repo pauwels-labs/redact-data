@@ -13,7 +13,7 @@ RUN USER=root cargo new service
 
 # Perform an initial compilation to cache dependencies
 WORKDIR /usr/src/service
-#COPY Cargo.lock Cargo.toml ./
+COPY Cargo.lock Cargo.toml ./
 RUN echo "fn main() {println!(\"if you see this, the image build failed and kept the depency-caching entrypoint. check your dockerfile and image build logs.\")}" > src/main.rs
 RUN USER=root cargo tarpaulin
 
