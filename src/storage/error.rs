@@ -36,3 +36,23 @@ impl Display for StorageError {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::StorageError;
+
+    #[test]
+    fn test_to_string_internal_error() {
+        let s = StorageError::InternalError {
+            source: Box::new(StorageError::NotFound),
+        }
+        .to_string();
+        assert_eq!(s, "Internal error occurred");
+    }
+
+    #[test]
+    fn test_to_string_not_found() {
+        let s = StorageError::NotFound.to_string();
+        assert_eq!(s, "Data not found");
+    }
+}

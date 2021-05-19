@@ -6,6 +6,8 @@ pub struct RedactDataStorer {
     url: String,
 }
 
+/// Stores an instance of a redact-backed data storer.
+/// The redact-store server is an implement of a redact storage backing.
 impl RedactDataStorer {
     pub fn new(url: &str) -> RedactDataStorer {
         RedactDataStorer {

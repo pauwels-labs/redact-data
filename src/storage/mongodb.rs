@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use mongodb::{bson, options::ClientOptions, options::FindOneOptions, Client, Database};
 
+/// Stores an instance of a mongodb-backed data storer
 #[derive(Clone)]
 pub struct MongoDataStorer {
     url: String,
@@ -12,6 +13,8 @@ pub struct MongoDataStorer {
 }
 
 impl MongoDataStorer {
+    /// Instantiates a mongo-backed data storer using a URL to the mongo cluster and the
+    /// name of the DB to connect to.
     pub async fn new(url: &str, db_name: &str) -> Self {
         let db_client_options = ClientOptions::parse_with_resolver_config(
             url,
