@@ -85,7 +85,7 @@ impl DataStorer for MongoDataStorer {
         let filter_options = mongodb::options::ReplaceOptions::builder()
             .upsert(true)
             .build();
-        let filter = bson::doc! { "path": data.path.to_string() };
+        let filter = bson::doc! { "path": data.path() };
 
         match self
             .db

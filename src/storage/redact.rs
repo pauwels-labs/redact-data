@@ -55,7 +55,7 @@ impl DataStorer for RedactDataStorer {
 
     async fn create(&self, data: Data) -> Result<bool, StorageError> {
         match reqwest::Client::new()
-            .post(&format!("{}/data?path={}", self.url, data.path))
+            .post(&format!("{}/data?path={}", self.url, data.path()))
             .json(&data)
             .send()
             .await
