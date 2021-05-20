@@ -56,12 +56,13 @@ spec:
         - image: gcr.io/kaniko-project/executor:debug-v1.3.0
           name: unit-test-2
           volumeMounts:
-          - name: coveralls-repo-tokens
-            mountPath: /coveralls
+          - name: crates-io-token
+            mountPath: /usr/local/cargo
           resources: {}
           script: |
             #!/busybox/sh
             source .jx/variables.sh
+            sleep 999999
         - name: promote-changelog
           resources: {}
         volumes:
