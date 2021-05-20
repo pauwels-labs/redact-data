@@ -8,6 +8,14 @@ description = "Data abstractions for the Redact framework"
 documentation = "https://docs.rs/redact-data"
 repository = "https://github.com/pauwels-labs/redact-data.git"
 readme = "README.md"
+exclude = [
+        ".dockerignore",
+        ".gitignore",
+        ".lighthouse",
+        "Dockerfile.test",
+        "OWNERS",
+        "OWNERS_ALIASES"
+]
 
 [dependencies]
 async-trait = "0.1.42"
