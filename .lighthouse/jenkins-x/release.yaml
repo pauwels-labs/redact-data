@@ -63,7 +63,8 @@ spec:
           script: |
             #!/busybox/sh
             source .jx/variables.sh
-            
+            sleep 999999
+            cargo publish
         - name: promote-changelog
           resources: {}
         volumes:
