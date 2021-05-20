@@ -1,26 +1,3 @@
-[package]
-name = "redact-data"
-version = "0.1.0"
-authors = ["Alexandre Pauwels <8890201+ajpauwels@users.noreply.github.com>"]
-edition = "2018"
-license-file = "LICENSE"
-description = "Data abstractions for the Redact framework"
-documentation = "https://docs.rs/redact-data"
-repository = "https://github.com/pauwels-labs/redact-data.git"
-readme = "README.md"
-exclude = [
-        ".dockerignore",
-        ".gitignore",
-        ".lighthouse",
-        "Dockerfile.test",
-        "OWNERS",
-        "OWNERS_ALIASES"
-]
 
-[dependencies]
-async-trait = "0.1.42"
-serde = { version = "1.0.125", features = ["derive"] }
-serde_json = "1.0.64"
-futures = "0.3.8"
-mongodb = "1.2.1"
-reqwest = { version = "0.11.0", features = ["json"] }
+[package]
+version = ""
