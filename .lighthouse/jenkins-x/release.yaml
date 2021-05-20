@@ -58,6 +58,7 @@ spec:
           resources: {}
           script: |
             #!/bin/sh
+            source .jx/variables.sh
             toml set Cargo.toml package.version "$VERSION" > Cargo.toml
         - name: promote-changelog
           resources: {}
