@@ -6,6 +6,7 @@ pub use self::{error::StorageError, mongodb::MongoDataStorer, redact::RedactData
 use crate::data::{Data, DataCollection};
 use async_trait::async_trait;
 
+/// The operations a storer of `Data` structs must be able to fulfill.
 #[async_trait]
 pub trait DataStorer: Clone + Send + Sync {
     /// Fetches one instance of a `Data` stored at that path.
