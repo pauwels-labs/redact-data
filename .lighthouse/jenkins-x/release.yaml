@@ -59,8 +59,9 @@ spec:
           script: |
             #!/bin/sh
             source .jx/variables.sh
-            sleep 999999
-            toml set Cargo.toml package.version "$VERSION" > Cargo.toml
+            # When you write directly to Cargo.toml, it weirdly appends to the file
+            toml set Cargo.toml package.version "$VERSION" > Cargo.toml.new
+            mv Cargo.toml.new Cargo.toml
         - name: promote-changelog
           resources: {}
         - image: 274295908850.dkr.ecr.eu-west-1.amazonaws.com/pauwels-labs/toml-editor:0.0.5
