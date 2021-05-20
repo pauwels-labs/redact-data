@@ -3,8 +3,11 @@ name = "redact-data"
 version = "0.1.0"
 authors = ["Alexandre Pauwels <8890201+ajpauwels@users.noreply.github.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license-file = "LICENSE"
+description = "Data abstractions for the Redact framework"
+documentation = "https://docs.rs/redact-data"
+repository = "https://github.com/pauwels-labs/redact-data.git"
+readme = "README.md"
 
 [dependencies]
 async-trait = "0.1.42"
