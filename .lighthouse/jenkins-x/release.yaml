@@ -54,7 +54,7 @@ spec:
             head -c 32 /dev/random > bust
             /kaniko/executor $KANIKO_FLAGS --context=/workspace/source --dockerfile=Dockerfile.test --no-push --cache=true --cache-dir=/kaniko/cache --cache-repo=$DOCKER_REGISTRY/$DOCKER_REGISTRY_ORG/$APP_NAME/cache --build-arg REPO_TOKEN=$(cat /coveralls/$APP_NAME)
         - image: gcr.io/kaniko-project/executor:debug-v1.3.0
-          name: unit-test-2
+          name: cargo-publish
           volumeMounts:
           - name: crates-io-token
             mountPath: /usr/local/cargo
@@ -62,13 +62,16 @@ spec:
           script: |
             #!/busybox/sh
             source .jx/variables.sh
-            sleep 999999
+            cargo publish
         - name: promote-changelog
           resources: {}
         volumes:
         - name: coveralls-repo-tokens
           secret:
             secretName: coveralls-repo-tokens
+        - name: crates-io-token
+          secret:
+            secretName: crates-io-token
   podTemplate: {}
   serviceAccountName: authorized-tekton-bot
   timeout: 240h0m0s
