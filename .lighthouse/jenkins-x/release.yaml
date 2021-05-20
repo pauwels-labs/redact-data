@@ -57,7 +57,8 @@ spec:
           name: cargo-publish
           volumeMounts:
           - name: crates-io-token
-            mountPath: /usr/local/cargo
+            mountPath: /usr/local/cargo/credentials
+            subPath: credentials
           resources: {}
           script: |
             #!/busybox/sh
