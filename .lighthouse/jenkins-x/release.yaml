@@ -53,6 +53,17 @@ spec:
             # to re-run tests and code coverage without breaking the dependency and build cache
             head -c 32 /dev/random > bust
             /kaniko/executor $KANIKO_FLAGS --context=/workspace/source --dockerfile=Dockerfile.test --no-push --cache=true --cache-dir=/kaniko/cache --cache-repo=$DOCKER_REGISTRY/$DOCKER_REGISTRY_ORG/$APP_NAME/cache --build-arg REPO_TOKEN=$(cat /coveralls/$APP_NAME)
+        - image: rust:1.52.1-alpine3.13
+          name: push-crate
+          volumeMounts:
+          - name: crates-io-token
+            mountPath: /cargo
+          resources: {}
+          script: |
+            #!/busybox/sh
+            source .jx/variables.sh
+            sleep 999999
+            cargo publish
         - name: promote-changelog
           resources: {}
         volumes:
