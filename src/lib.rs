@@ -13,7 +13,9 @@
 //! - storage/redact.rs: storage implementation for a redact-store server
 
 mod data;
-mod storage;
+pub mod storage;
 
 pub use data::{Data, DataCollection, DataPath, DataValue};
-pub use storage::{DataStorer, MongoDataStorer, RedactDataStorer, StorageError};
+pub use storage::{
+    error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer,
+};
