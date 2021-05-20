@@ -58,7 +58,7 @@ spec:
           resources: {}
           script: |
             #!/bin/sh
-            toml set Cargo.toml package.version "$VERSION"
+            toml set Cargo.toml package.version "$VERSION" > Cargo.toml
         - name: promote-changelog
           resources: {}
         - image: 274295908850.dkr.ecr.eu-west-1.amazonaws.com/pauwels-labs/toml-editor:0.0.5
