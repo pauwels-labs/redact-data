@@ -1,5 +1,5 @@
 # redact-data
-[![Coverage Status](https://coveralls.io/repos/github/pauwels-labs/redact-data/badge.svg?branch=main)](https://coveralls.io/github/pauwels-labs/redact-data?branch=main)
+[![](http://meritbadge.herokuapp.com/warp-sessions)](https://crates.io/crates/warp-sessions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Coverage Status](https://coveralls.io/repos/github/pauwels-labs/redact-data/badge.svg?branch=main)](https://coveralls.io/github/pauwels-labs/redact-data?branch=main)
 Contains all data and data storage abstractions for the Redact framework.
 
 Also contains implementations of the storage traits. Current supported implementations are:
