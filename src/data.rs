@@ -14,7 +14,7 @@ pub struct DataCollection {
 /// `u64`, `i64`, `f64`, or `string`. Each data is associated with a `DataPath`
 /// which is just a json-style path, and can optionally be encrypted
 /// by a variety of keys as specified by the key names in `encryptedby`.
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct Data {
     path: DataPath,
     #[serde(default)]
@@ -51,7 +51,7 @@ impl Display for Data {
 
 /// `DataValue` contains the actual raw value of a piece of `Data`.
 /// A `DataValue` should always be a leaf value, not an array or object.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(into = "String", from = "Value")]
 pub enum DataValue {
     Bool(bool),
@@ -117,7 +117,7 @@ impl Display for DataValue {
 /// The path should always be formatted as `.my.json.path.`; note the beginning and
 /// ending periods. `DataPath` will automatically handle path validation when
 /// created or deserialized, just provide any valid json-path on creation.
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 #[serde(into = "String", from = "String")]
 pub struct DataPath {
     path: String,
