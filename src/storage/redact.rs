@@ -1,14 +1,15 @@
 use crate::{Data, DataCollection, DataStorer, StorageError};
 use async_trait::async_trait;
 
+/// Stores an instance of a redact-backed data storer.
+/// The redact-store server is an example implementation of a redact storage backing.
 #[derive(Clone)]
 pub struct RedactDataStorer {
     url: String,
 }
 
-/// Stores an instance of a redact-backed data storer.
-/// The redact-store server is an example implementation of a redact storage backing.
 impl RedactDataStorer {
+    /// Instantiates a redact-backed data storer using a URL to the storage server.
     pub fn new(url: &str) -> RedactDataStorer {
         RedactDataStorer {
             url: url.to_owned(),

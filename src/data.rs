@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::fmt::{self, Debug, Display, Formatter};
+use std::{
+    fmt::{self, Debug, Display, Formatter},
+    vec::Vec,
+};
 
 /// DataCollection is returned when a find or search returns
 /// multiple Data objects
@@ -18,7 +20,7 @@ pub struct DataCollection {
 pub struct Data {
     path: DataPath,
     #[serde(default)]
-    value: DataValue,
+    value: DataValueCollection,
     encryptedby: Option<Vec<String>>,
 }
 
@@ -27,7 +29,7 @@ impl Data {
     pub fn new(path: &str, value: DataValue, encryptedby: Option<Vec<String>>) -> Self {
         Data {
             path: DataPath::from(path),
-            value,
+            value: DataValueCollection(vec![value]),
             encryptedby,
         }
     }
@@ -49,11 +51,65 @@ impl Display for Data {
     }
 }
 
+/// Wraps a vector of `DataValue` enums. In the future, this type will implement
+/// group `DataValue` operations.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+pub struct DataValueCollection(Vec<DataValue>);
+
+impl Display for DataValueCollection {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.0
+            .iter()
+            .try_for_each(|dv| write!(f, "{}", dv.to_string()))
+    }
+}
+
 /// `DataValue` contains the actual raw value of a piece of `Data`.
 /// A `DataValue` should always be a leaf value, not an array or object.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(into = "String", from = "Value")]
 pub enum DataValue {
+    Encrypted(EncryptedDataValue),
+    Unencrypted(UnencryptedDataValue),
+}
+
+impl Default for DataValue {
+    fn default() -> Self {
+        Self::Unencrypted(UnencryptedDataValue::Bool(false))
+    }
+}
+
+impl Display for DataValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            DataValue::Encrypted(ref e) => write!(f, "{}", e.to_string()),
+            DataValue::Unencrypted(ref u) => write!(f, "{}", u.to_string()),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum DataType {
+    Bool,
+    U64,
+    I64,
+    F64,
+    String,
+}
+
+impl Display for DataType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Bool => write!(f, "bool"),
+            Self::U64 => write!(f, "u64"),
+            Self::I64 => write!(f, "i64"),
+            Self::F64 => write!(f, "f64"),
+            Self::String => write!(f, "string"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum UnencryptedDataValue {
     Bool(bool),
     U64(u64),
     I64(i64),
@@ -61,57 +117,70 @@ pub enum DataValue {
     String(String),
 }
 
-impl Default for DataValue {
-    fn default() -> Self {
-        Self::Bool(false)
-    }
-}
-
-impl From<DataValue> for String {
-    fn from(val: DataValue) -> Self {
-        val.to_string()
-    }
-}
-
-impl From<&str> for DataValue {
-    fn from(s: &str) -> Self {
-        if let Ok(b) = s.parse::<bool>() {
-            DataValue::Bool(b)
-        } else if let Ok(n) = s.parse::<u64>() {
-            DataValue::U64(n)
-        } else if let Ok(n) = s.parse::<i64>() {
-            DataValue::I64(n)
-        } else if let Ok(n) = s.parse::<f64>() {
-            DataValue::F64(n)
-        } else {
-            DataValue::String(s.to_owned())
-        }
-    }
-}
-
-impl From<Value> for DataValue {
-    fn from(v: Value) -> Self {
-        match v {
-            Value::Null => DataValue::String("".to_owned()),
-            Value::Bool(b) => DataValue::Bool(b),
-            Value::Number(n) => DataValue::from(n.to_string().as_ref()),
-            Value::String(s) => DataValue::String(s),
-            _ => DataValue::String(v.to_string()),
-        }
-    }
-}
-
-impl Display for DataValue {
+impl Display for UnencryptedDataValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match *self {
-            DataValue::Bool(ref b) => write!(f, "{}", b),
-            DataValue::U64(ref n) => write!(f, "{}", n),
-            DataValue::I64(ref n) => write!(f, "{}", n),
-            DataValue::F64(ref n) => write!(f, "{}", n),
-            DataValue::String(ref s) => write!(f, "{}", s),
+            UnencryptedDataValue::Bool(ref b) => write!(f, "{}", b),
+            UnencryptedDataValue::U64(ref n) => write!(f, "{}", n),
+            UnencryptedDataValue::I64(ref n) => write!(f, "{}", n),
+            UnencryptedDataValue::F64(ref n) => write!(f, "{}", n),
+            UnencryptedDataValue::String(ref s) => write!(f, "{}", s),
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct EncryptedDataValue {
+    value: Vec<u8>,
+    datatype: DataType,
+    keyname: String,
+}
+
+impl Display for EncryptedDataValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "encrypted(key: \"{}\", type: \"{}\", value: \"{}\")",
+            self.keyname,
+            self.datatype,
+            String::from_utf8(self.value.clone()).map_err(|_| std::fmt::Error)?,
+        )
+    }
+}
+
+// impl From<DataValue> for String {
+//     fn from(val: DataValue) -> Self {
+//         val.to_string()
+//     }
+// }
+
+// impl From<&str> for DataValue {
+//     fn from(s: &str) -> Self {
+//         if let Ok(b) = s.parse::<bool>() {
+//             DataValue::Bool(b)
+//         } else if let Ok(n) = s.parse::<u64>() {
+//             DataValue::U64(n)
+//         } else if let Ok(n) = s.parse::<i64>() {
+//             DataValue::I64(n)
+//         } else if let Ok(n) = s.parse::<f64>() {
+//             DataValue::F64(n)
+//         } else {
+//             DataValue::String(s.to_owned())
+//         }
+//     }
+// }
+
+// impl From<Value> for DataValue {
+//     fn from(v: Value) -> Self {
+//         match v {
+//             Value::Null => DataValue::String("".to_owned()),
+//             Value::Bool(b) => DataValue::Bool(b),
+//             Value::Number(n) => DataValue::from(n.to_string().as_ref()),
+//             Value::String(s) => DataValue::String(s),
+//             _ => DataValue::String(v.to_string()),
+//         }
+//     }
+// }
 
 /// `DataPath` represents a json-style path for the location of a `Data` object.
 /// The path should always be formatted as `.my.json.path.`; note the beginning and
@@ -226,253 +295,392 @@ impl From<DataPath> for String {
 
 #[cfg(test)]
 mod tests {
+    mod datavaluecollection {
+        use crate::data::DataValueCollection;
+
+        #[test]
+        fn test_default_is_empty_vec() {
+            let dvc = DataValueCollection::default();
+            assert!(dvc.0.is_empty());
+        }
+
+        #[test]
+        fn test_to_string_empty() {
+            let dvc = DataValueCollection::default();
+            assert!(dvc.0.is_empty());
+            assert_eq!("", dvc.to_string());
+        }
+    }
     mod datavalue {
-        use crate::data::DataValue;
-        use serde_json::{json, Value};
-        use std::convert::From;
+        use crate::data::{DataType, DataValue, EncryptedDataValue, UnencryptedDataValue};
 
         #[test]
-        fn test_default_is_false_bool() {
-            let dv = DataValue::default();
-            match dv {
-                DataValue::Bool(b) => {
-                    assert!(!b, "default DataValue should be a DataValue::Bool(false)")
-                }
-                _ => {
-                    panic!("default DataValue should be a DataValue::Bool(false)")
-                }
-            }
+        fn test_to_string_encrypted() {
+            let dv = DataValue::Encrypted(EncryptedDataValue {
+                value: "hello".into(),
+                datatype: DataType::String,
+                keyname: "somekey".to_owned(),
+            });
+
+            assert_eq!(
+                "encrypted(key: \"somekey\", type: \"string\", value: \"hello\")",
+                dv.to_string()
+            )
         }
 
         #[test]
-        fn test_to_string_bool_true() {
-            let dv = DataValue::from("true");
-            assert_eq!(dv.to_string(), "true");
+        fn test_to_string_unencrypted() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::Bool(true));
+
+            assert_eq!("true", dv.to_string())
         }
+    }
+    mod datatype {
+        use crate::data::DataType;
 
         #[test]
-        fn test_to_string_bool_false() {
-            let dv = DataValue::from("false");
-            assert_eq!(dv.to_string(), "false");
+        fn test_to_string_bool() {
+            let dt = DataType::Bool;
+
+            assert_eq!("bool", dt.to_string())
         }
 
         #[test]
         fn test_to_string_u64() {
-            let dv = DataValue::from("24");
-            assert_eq!(dv.to_string(), "24");
+            let dt = DataType::U64;
+
+            assert_eq!("u64", dt.to_string())
         }
 
         #[test]
         fn test_to_string_i64() {
-            let dv = DataValue::from("-10");
-            assert_eq!(dv.to_string(), "-10");
+            let dt = DataType::I64;
+
+            assert_eq!("i64", dt.to_string())
         }
 
         #[test]
         fn test_to_string_f64() {
-            let dv = DataValue::from("10.3");
-            assert_eq!(dv.to_string(), "10.3");
+            let dt = DataType::F64;
+
+            assert_eq!("f64", dt.to_string())
         }
 
         #[test]
         fn test_to_string_string() {
-            let dv = DataValue::from("somestr");
-            assert_eq!(dv.to_string(), "somestr");
-        }
+            let dt = DataType::String;
 
-        #[test]
-        fn test_from_datavalue_for_string() {
-            let dv = DataValue::default();
-            let s: String = From::<DataValue>::from(dv);
-            assert_eq!(s, "false");
-        }
-
-        #[test]
-        fn test_from_string_for_bool_true() {
-            let dv = From::<&str>::from("true");
-            match dv {
-                DataValue::Bool(b) => assert!(b),
-                _ => panic!("DataValue should have been a Bool variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_bool_false() {
-            let dv = From::<&str>::from("false");
-            match dv {
-                DataValue::Bool(b) => assert!(!b),
-                _ => panic!("DataValue should have been a Bool variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_zero() {
-            let dv = From::<&str>::from("0");
-            match dv {
-                DataValue::U64(n) => assert_eq!(n, 0),
-                _ => panic!("DataValue should have been a U64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_positive_integer() {
-            let dv = From::<&str>::from("100");
-            match dv {
-                DataValue::U64(n) => assert_eq!(n, 100),
-                _ => panic!("DataValue should have been a U64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_negative_integer() {
-            let dv = From::<&str>::from("-1");
-            match dv {
-                DataValue::I64(n) => assert_eq!(n, -1),
-                _ => panic!("DataValue should have been a I64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_positive_decimal() {
-            let dv = From::<&str>::from("10.52");
-            match dv {
-                // We have to do the f64::EPSILON comparison here as floating point
-                // comparisons are inherently inexact; see:
-                // https://rust-lang.github.io/rust-clippy/master/index.html#float_cmp
-                DataValue::F64(n) => assert!((n - 10.52f64).abs() < f64::EPSILON),
-                _ => panic!("DataValue should have been a F64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_negative_decimal() {
-            let dv = From::<&str>::from("-4.38");
-            match dv {
-                // We have to do the f64::EPSILON comparison here as floating point
-                // comparisons are inherently inexact; see:
-                // https://rust-lang.github.io/rust-clippy/master/index.html#float_cmp
-                DataValue::F64(n) => assert!((n + 4.38f64).abs() < f64::EPSILON),
-                _ => panic!("DataValue should have been a F64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_string() {
-            let dv = From::<&str>::from("somestr");
-            match dv {
-                DataValue::String(s) => assert_eq!(s, "somestr"),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_string_that_starts_with_a_number() {
-            let dv = From::<&str>::from("10.52a");
-            match dv {
-                DataValue::String(s) => assert_eq!(s, "10.52a"),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_string_for_empty_string() {
-            let dv = From::<&str>::from("");
-            match dv {
-                DataValue::String(s) => assert_eq!(s, ""),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_null_variant() {
-            let dv = From::<Value>::from(Value::Null);
-            match dv {
-                DataValue::String(s) => assert_eq!(s, ""),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_bool_true_variant() {
-            let dv = From::<Value>::from(Value::Bool(true));
-            match dv {
-                DataValue::Bool(b) => assert!(b),
-                _ => panic!("DataValue should have been a Bool variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_bool_false_variant() {
-            let dv = From::<Value>::from(Value::Bool(false));
-            match dv {
-                DataValue::Bool(b) => assert!(!b),
-                _ => panic!("DataValue should have been a Bool variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_number_zero_variant() {
-            let dv = From::<Value>::from(json!(0));
-            match dv {
-                DataValue::U64(n) => assert_eq!(n, 0),
-                _ => panic!("DataValue should have been a U64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_number_negative_variant() {
-            let dv = From::<Value>::from(json!(-1240));
-            match dv {
-                DataValue::I64(n) => assert_eq!(n, -1240),
-                _ => panic!("DataValue should have been an I64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_number_negative_decimal_variant() {
-            let dv = From::<Value>::from(json!(-300.434));
-            match dv {
-                DataValue::F64(n) => assert!((n + 300.434).abs() < f64::EPSILON),
-                _ => panic!("DataValue should have been an F64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_number_positive_decimal_variant() {
-            let dv = From::<Value>::from(json!(0.001));
-            match dv {
-                DataValue::F64(n) => assert!((n - 0.001).abs() < f64::EPSILON),
-                _ => panic!("DataValue should have been an F64 variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_string_variant() {
-            let dv = From::<Value>::from(Value::String("somestr".to_owned()));
-            match dv {
-                DataValue::String(s) => assert_eq!(s, "somestr"),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_object_variant() {
-            let dv = From::<Value>::from(json!({ "key": "value" }));
-            match dv {
-                DataValue::String(s) => assert_eq!(s, "{\"key\":\"value\"}"),
-                _ => panic!("DataValue should have been a String variant"),
-            }
-        }
-
-        #[test]
-        fn test_from_value_for_array_variant() {
-            let dv = From::<Value>::from(json!([ 1, "str", { "key": "value" } ]));
-            match dv {
-                DataValue::String(s) => assert_eq!(s, "[1,\"str\",{\"key\":\"value\"}]"),
-                _ => panic!("DataValue should have been a String variant"),
-            }
+            assert_eq!("string", dt.to_string())
         }
     }
+    mod unencrypteddatavalue {
+        use crate::data::{DataValue, UnencryptedDataValue};
+
+        #[test]
+        fn test_to_string_unencrypted_bool_true() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::Bool(true));
+
+            assert_eq!("true", dv.to_string())
+        }
+
+        #[test]
+        fn test_to_string_unencrypted_bool_false() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::Bool(false));
+
+            assert_eq!("false", dv.to_string())
+        }
+
+        #[test]
+        fn test_to_string_unencrypted_u64() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::U64(0));
+
+            assert_eq!("0", dv.to_string())
+        }
+
+        #[test]
+        fn test_to_string_unencrypted_i64() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::I64(-10));
+
+            assert_eq!("-10", dv.to_string())
+        }
+
+        #[test]
+        fn test_to_string_unencrypted_f64() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::F64(-390.321));
+
+            assert_eq!("-390.321", dv.to_string())
+        }
+
+        #[test]
+        fn test_to_string_unencrypted_string() {
+            let dv = DataValue::Unencrypted(UnencryptedDataValue::String("hello".to_owned()));
+
+            assert_eq!("hello", dv.to_string())
+        }
+    }
+    mod encrypteddatavalue {
+        use crate::data::{DataType, DataValue, EncryptedDataValue};
+
+        #[test]
+        fn test_to_string_encrypted() {
+            let dv = DataValue::Encrypted(EncryptedDataValue {
+                value: "hello".into(),
+                datatype: DataType::String,
+                keyname: "somekey".to_owned(),
+            });
+
+            assert_eq!(
+                "encrypted(key: \"somekey\", type: \"string\", value: \"hello\")",
+                dv.to_string()
+            )
+        }
+    }
+
+    // #[test]
+    // fn test_default_is_false_bool() {
+    //     let dv = DataValue::default();
+    //     match dv {
+    //         DataValue::Unencrypted(e) => {
+    // 	    match e {
+    // 		UnencryptedDataValue::Bool(b) => assert!(!b,  "default DataValue should be a DataValue::Bool(false)"),
+    // 		_ => panic!("default DataValue is an unencrypted non-bool, should be an unencrypted bool with value false"),
+    // 	    }
+    // 	}
+    //         _ => {
+    //             panic!("default DataValue should be a DataValue::Bool(false)")
+    //         }
+    //     }
+    // }
+
+    //     #[test]
+    //     fn test_to_string_bool_true() {
+    //         let dv = DataValue::from("true");
+    //         assert_eq!(dv.to_string(), "true");
+    //     }
+
+    //     #[test]
+    //     fn test_to_string_bool_false() {
+    //         let dv = DataValue::from("false");
+    //         assert_eq!(dv.to_string(), "false");
+    //     }
+
+    //     #[test]
+    //     fn test_to_string_u64() {
+    //         let dv = DataValue::from("24");
+    //         assert_eq!(dv.to_string(), "24");
+    //     }
+
+    //     #[test]
+    //     fn test_to_string_i64() {
+    //         let dv = DataValue::from("-10");
+    //         assert_eq!(dv.to_string(), "-10");
+    //     }
+
+    //     #[test]
+    //     fn test_to_string_f64() {
+    //         let dv = DataValue::from("10.3");
+    //         assert_eq!(dv.to_string(), "10.3");
+    //     }
+
+    //     #[test]
+    //     fn test_to_string_string() {
+    //         let dv = DataValue::from("somestr");
+    //         assert_eq!(dv.to_string(), "somestr");
+    //     }
+
+    //     #[test]
+    //     fn test_from_datavalue_for_string() {
+    //         let dv = DataValue::default();
+    //         let s: String = From::<DataValue>::from(dv);
+    //         assert_eq!(s, "false");
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_bool_true() {
+    //         let dv = From::<&str>::from("true");
+    //         match dv {
+    //             DataValue::Bool(b) => assert!(b),
+    //             _ => panic!("DataValue should have been a Bool variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_bool_false() {
+    //         let dv = From::<&str>::from("false");
+    //         match dv {
+    //             DataValue::Bool(b) => assert!(!b),
+    //             _ => panic!("DataValue should have been a Bool variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_zero() {
+    //         let dv = From::<&str>::from("0");
+    //         match dv {
+    //             DataValue::U64(n) => assert_eq!(n, 0),
+    //             _ => panic!("DataValue should have been a U64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_positive_integer() {
+    //         let dv = From::<&str>::from("100");
+    //         match dv {
+    //             DataValue::U64(n) => assert_eq!(n, 100),
+    //             _ => panic!("DataValue should have been a U64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_negative_integer() {
+    //         let dv = From::<&str>::from("-1");
+    //         match dv {
+    //             DataValue::I64(n) => assert_eq!(n, -1),
+    //             _ => panic!("DataValue should have been a I64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_positive_decimal() {
+    //         let dv = From::<&str>::from("10.52");
+    //         match dv {
+    //             // We have to do the f64::EPSILON comparison here as floating point
+    //             // comparisons are inherently inexact; see:
+    //             // https://rust-lang.github.io/rust-clippy/master/index.html#float_cmp
+    //             DataValue::F64(n) => assert!((n - 10.52f64).abs() < f64::EPSILON),
+    //             _ => panic!("DataValue should have been a F64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_negative_decimal() {
+    //         let dv = From::<&str>::from("-4.38");
+    //         match dv {
+    //             // We have to do the f64::EPSILON comparison here as floating point
+    //             // comparisons are inherently inexact; see:
+    //             // https://rust-lang.github.io/rust-clippy/master/index.html#float_cmp
+    //             DataValue::F64(n) => assert!((n + 4.38f64).abs() < f64::EPSILON),
+    //             _ => panic!("DataValue should have been a F64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_string() {
+    //         let dv = From::<&str>::from("somestr");
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, "somestr"),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_string_that_starts_with_a_number() {
+    //         let dv = From::<&str>::from("10.52a");
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, "10.52a"),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_string_for_empty_string() {
+    //         let dv = From::<&str>::from("");
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, ""),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_null_variant() {
+    //         let dv = From::<Value>::from(Value::Null);
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, ""),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_bool_true_variant() {
+    //         let dv = From::<Value>::from(Value::Bool(true));
+    //         match dv {
+    //             DataValue::Bool(b) => assert!(b),
+    //             _ => panic!("DataValue should have been a Bool variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_bool_false_variant() {
+    //         let dv = From::<Value>::from(Value::Bool(false));
+    //         match dv {
+    //             DataValue::Bool(b) => assert!(!b),
+    //             _ => panic!("DataValue should have been a Bool variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_number_zero_variant() {
+    //         let dv = From::<Value>::from(json!(0));
+    //         match dv {
+    //             DataValue::U64(n) => assert_eq!(n, 0),
+    //             _ => panic!("DataValue should have been a U64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_number_negative_variant() {
+    //         let dv = From::<Value>::from(json!(-1240));
+    //         match dv {
+    //             DataValue::I64(n) => assert_eq!(n, -1240),
+    //             _ => panic!("DataValue should have been an I64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_number_negative_decimal_variant() {
+    //         let dv = From::<Value>::from(json!(-300.434));
+    //         match dv {
+    //             DataValue::F64(n) => assert!((n + 300.434).abs() < f64::EPSILON),
+    //             _ => panic!("DataValue should have been an F64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_number_positive_decimal_variant() {
+    //         let dv = From::<Value>::from(json!(0.001));
+    //         match dv {
+    //             DataValue::F64(n) => assert!((n - 0.001).abs() < f64::EPSILON),
+    //             _ => panic!("DataValue should have been an F64 variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_string_variant() {
+    //         let dv = From::<Value>::from(Value::String("somestr".to_owned()));
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, "somestr"),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_object_variant() {
+    //         let dv = From::<Value>::from(json!({ "key": "value" }));
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, "{\"key\":\"value\"}"),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_from_value_for_array_variant() {
+    //         let dv = From::<Value>::from(json!([ 1, "str", { "key": "value" } ]));
+    //         match dv {
+    //             DataValue::String(s) => assert_eq!(s, "[1,\"str\",{\"key\":\"value\"}]"),
+    //             _ => panic!("DataValue should have been a String variant"),
+    //         }
+    //     }
+    // }
 
     mod datapath {
         use crate::data::DataPath;
