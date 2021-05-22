@@ -15,7 +15,7 @@
 mod data;
 pub mod storage;
 
-pub use data::{Data, DataCollection, DataPath, DataValue};
+pub use data::{Data, DataCollection, DataPath, UnencryptedDataValue};
 pub use storage::{
     error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer,
 };
