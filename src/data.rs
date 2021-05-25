@@ -154,21 +154,17 @@ impl Display for EncryptedDataValue {
 //     }
 // }
 
-// impl From<&str> for DataValue {
-//     fn from(s: &str) -> Self {
-//         if let Ok(b) = s.parse::<bool>() {
-//             DataValue::Bool(b)
-//         } else if let Ok(n) = s.parse::<u64>() {
-//             DataValue::U64(n)
-//         } else if let Ok(n) = s.parse::<i64>() {
-//             DataValue::I64(n)
-//         } else if let Ok(n) = s.parse::<f64>() {
-//             DataValue::F64(n)
-//         } else {
-//             DataValue::String(s.to_owned())
-//         }
-//     }
-// }
+impl From<String> for DataValue {
+    fn from(s: String) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::String(s))
+    }
+}
+
+impl From<&str> for DataValue {
+    fn from(s: &str) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::String(s.to_owned()))
+    }
+}
 
 // impl From<Value> for DataValue {
 //     fn from(v: Value) -> Self {
