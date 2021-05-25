@@ -45,7 +45,7 @@ impl Display for Data {
 /// Wraps a vector of `DataValue` enums. In the future, this type will implement
 /// group `DataValue` operations.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
-pub struct DataValueCollection(Vec<DataValue>);
+pub struct DataValueCollection(pub Vec<DataValue>);
 
 impl Display for DataValueCollection {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
