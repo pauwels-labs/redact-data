@@ -8,9 +8,7 @@ use std::{
 /// DataCollection is returned when a find or search returns
 /// multiple Data objects
 #[derive(Serialize, Deserialize, Debug)]
-pub struct DataCollection {
-    pub data: Vec<Data>,
-}
+pub struct DataCollection(pub Vec<Data>);
 
 /// `Data` stores a unit of data in the redact system. A chunk of
 /// data is a `DataValue` (contained within), which can be a `bool`,
@@ -20,7 +18,6 @@ pub struct DataCollection {
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct Data {
     path: DataPath,
-    #[serde(default)]
     value: DataValueCollection,
     encryptedby: Option<Vec<String>>,
 }
@@ -73,11 +70,11 @@ pub enum DataValue {
     Unencrypted(UnencryptedDataValue),
 }
 
-impl Default for DataValue {
-    fn default() -> Self {
-        Self::Unencrypted(UnencryptedDataValue::Bool(false))
-    }
-}
+// impl Default for DataValue {
+//     fn default() -> Self {
+//         Self::Unencrypted(UnencryptedDataValue::Bool(false))
+//     }
+// }
 
 impl Display for DataValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
