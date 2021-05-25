@@ -19,27 +19,20 @@ pub struct DataCollection(pub Vec<Data>);
 pub struct Data {
     path: DataPath,
     value: DataValueCollection,
-    encryptedby: Option<Vec<String>>,
 }
 
 impl Data {
     /// Builds a new Data struct using the provided values
-    pub fn new(path: &str, value: DataValue, encryptedby: Option<Vec<String>>) -> Self {
+    pub fn new(path: &str, value: DataValue) -> Self {
         Data {
             path: DataPath::from(path),
             value: DataValueCollection(vec![value]),
-            encryptedby,
         }
     }
 
     /// Returns an owned string representing the data's jsonpath
     pub fn path(&self) -> String {
         self.path.to_string()
-    }
-
-    /// Returns the optional list of keys this data is encrypted by
-    pub fn encryptedby(&self) -> &Option<Vec<String>> {
-        &self.encryptedby
     }
 }
 
