@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{
     fmt::{self, Debug, Display, Formatter},
     vec::Vec,
@@ -152,7 +153,31 @@ impl Display for EncryptedDataValue {
 //     fn from(val: DataValue) -> Self {
 //         val.to_string()
 //     }
-// }
+// }}
+
+impl From<bool> for DataValue {
+    fn from(b: bool) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::Bool(b))
+    }
+}
+
+impl From<u64> for DataValue {
+    fn from(n: u64) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::U64(n))
+    }
+}
+
+impl From<i64> for DataValue {
+    fn from(n: i64) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::I64(n))
+    }
+}
+
+impl From<f64> for DataValue {
+    fn from(n: f64) -> Self {
+        DataValue::Unencrypted(UnencryptedDataValue::F64(n))
+    }
+}
 
 impl From<String> for DataValue {
     fn from(s: String) -> Self {
@@ -166,17 +191,27 @@ impl From<&str> for DataValue {
     }
 }
 
-// impl From<Value> for DataValue {
-//     fn from(v: Value) -> Self {
-//         match v {
-//             Value::Null => DataValue::String("".to_owned()),
-//             Value::Bool(b) => DataValue::Bool(b),
-//             Value::Number(n) => DataValue::from(n.to_string().as_ref()),
-//             Value::String(s) => DataValue::String(s),
-//             _ => DataValue::String(v.to_string()),
-//         }
-//     }
-// }
+impl From<Value> for DataValue {
+    fn from(v: Value) -> Self {
+        match v {
+            Value::Null => "".to_owned().into(),
+            Value::Bool(b) => b.into(),
+            Value::Number(n) => {
+                if let Some(n) = n.as_u64() {
+                    n.into()
+                } else if let Some(n) = n.as_i64() {
+                    n.into()
+                } else if let Some(n) = n.as_f64() {
+                    n.into()
+                } else {
+                    panic!("a value was deserialized as a Number type but could not be further deserialized into a u64, i64, or f64")
+                }
+            }
+            Value::String(s) => s.into(),
+            _ => v.to_string().into(),
+        }
+    }
+}
 
 /// `DataPath` represents a json-style path for the location of a `Data` object.
 /// The path should always be formatted as `.my.json.path.`; note the beginning and
