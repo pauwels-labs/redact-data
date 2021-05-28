@@ -76,7 +76,7 @@ impl DataStorer for MongoDataStorer {
                 while let Some(item) = cursor.next().await {
                     data.push(item.unwrap());
                 }
-                Ok(DataCollection { data })
+                Ok(DataCollection(data))
             }
             Err(e) => Err(StorageError::InternalError {
                 source: Box::new(e),
