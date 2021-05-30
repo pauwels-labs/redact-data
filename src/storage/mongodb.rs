@@ -1,4 +1,4 @@
-use crate::storage::{error::StorageError, Data, DataCollection, DataStorer};
+use crate::storage::{error::StorageError, SealedData, SealedDataCollection, SealedDataStorer};
 use async_trait::async_trait;
 use futures::StreamExt;
 use mongodb::{bson, options::ClientOptions, options::FindOneOptions, Client, Database};
@@ -34,14 +34,14 @@ impl MongoDataStorer {
 }
 
 #[async_trait]
-impl DataStorer for MongoDataStorer {
-    async fn get(&self, path: &str) -> Result<Data, StorageError> {
+impl SealedDataStorer for MongoDataStorer {
+    async fn get(&self, path: &str) -> Result<SealedData, StorageError> {
         let filter_options = FindOneOptions::builder().build();
         let filter = bson::doc! { "path": path };
 
         match self
             .db
-            .collection_with_type::<Data>("data")
+            .collection_with_type::<SealedData>("data")
             .find_one(filter, filter_options)
             .await
         {
@@ -58,7 +58,7 @@ impl DataStorer for MongoDataStorer {
         path: &str,
         skip: i64,
         page_size: i64,
-    ) -> Result<DataCollection, StorageError> {
+    ) -> Result<SealedDataCollection, StorageError> {
         let filter_options = mongodb::options::FindOptions::builder()
             .skip(skip)
             .limit(page_size)
@@ -67,7 +67,7 @@ impl DataStorer for MongoDataStorer {
 
         match self
             .db
-            .collection_with_type::<Data>("data")
+            .collection_with_type::<SealedData>("data")
             .find(filter, filter_options)
             .await
         {
@@ -76,7 +76,7 @@ impl DataStorer for MongoDataStorer {
                 while let Some(item) = cursor.next().await {
                     data.push(item.unwrap());
                 }
-                Ok(DataCollection(data))
+                Ok(SealedDataCollection(data))
             }
             Err(e) => Err(StorageError::InternalError {
                 source: Box::new(e),
@@ -84,7 +84,7 @@ impl DataStorer for MongoDataStorer {
         }
     }
 
-    async fn create(&self, data: Data) -> Result<bool, StorageError> {
+    async fn create(&self, data: SealedData) -> Result<bool, StorageError> {
         let filter_options = mongodb::options::ReplaceOptions::builder()
             .upsert(true)
             .build();
@@ -92,7 +92,7 @@ impl DataStorer for MongoDataStorer {
 
         match self
             .db
-            .collection_with_type::<Data>("data")
+            .collection_with_type::<SealedData>("data")
             .replace_one(filter, data, filter_options)
             .await
         {

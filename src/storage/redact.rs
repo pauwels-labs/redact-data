@@ -1,4 +1,4 @@
-use crate::{Data, DataCollection, DataStorer, StorageError};
+use crate::{SealedData, SealedDataCollection, SealedDataStorer, StorageError};
 use async_trait::async_trait;
 
 /// Stores an instance of a redact-backed data storer.
@@ -18,15 +18,16 @@ impl RedactDataStorer {
 }
 
 #[async_trait]
-impl DataStorer for RedactDataStorer {
-    async fn get(&self, path: &str) -> Result<Data, StorageError> {
+impl SealedDataStorer for RedactDataStorer {
+    async fn get(&self, path: &str) -> Result<SealedData, StorageError> {
         match reqwest::get(&format!("{}/data/{}", self.url, path)).await {
-            Ok(r) => Ok(r
-                .json::<Data>()
-                .await
-                .map_err(|source| StorageError::InternalError {
-                    source: Box::new(source),
-                })?),
+            Ok(r) => {
+                Ok(r.json::<SealedData>()
+                    .await
+                    .map_err(|source| StorageError::InternalError {
+                        source: Box::new(source),
+                    })?)
+            }
             Err(source) => Err(StorageError::InternalError {
                 source: Box::new(source),
             }),
@@ -38,14 +39,14 @@ impl DataStorer for RedactDataStorer {
         path: &str,
         skip: i64,
         page_size: i64,
-    ) -> Result<DataCollection, StorageError> {
+    ) -> Result<SealedDataCollection, StorageError> {
         match reqwest::get(&format!(
             "{}/data/{}?skip={}&page_size={}",
             self.url, path, skip, page_size
         ))
         .await
         {
-            Ok(r) => Ok(r.json::<DataCollection>().await.map_err(|source| {
+            Ok(r) => Ok(r.json::<SealedDataCollection>().await.map_err(|source| {
                 StorageError::InternalError {
                     source: Box::new(source),
                 }
@@ -56,7 +57,7 @@ impl DataStorer for RedactDataStorer {
         }
     }
 
-    async fn create(&self, data: Data) -> Result<bool, StorageError> {
+    async fn create(&self, data: SealedData) -> Result<bool, StorageError> {
         match reqwest::Client::new()
             .post(&format!("{}/data?path={}", self.url, data.path()))
             .json(&data)

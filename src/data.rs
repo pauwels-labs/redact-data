@@ -5,28 +5,64 @@ use std::{
     vec::Vec,
 };
 
-/// DataCollection is returned when a find or search returns
-/// multiple Data objects
+/// `Data` classifies a unit of data as being either sealed or unsealed.
+/// A sealed unit of data only contains ciphertexts of its value. These
+/// ciphertexts may reference a key which can decrypt it into a plaintext,
+/// but that key has to be provided in order to extract a plaintext value.
+/// Conversely, an unsealed data unit does contain the plaintext value in
+/// memory. The only way to build an unsealed data unit is to call the unseal
+/// method on a sealed data unit.
+/// The aim of separating data in this way is two-fold. The first is to
+/// minimize the amount of time that a plaintext value exists in memory.
+/// The vast majority of the time, data passed around in code should be sealed
+/// data. Unsealing this piece of data should be done sparsely and only when
+/// absolutely necessary, and the unsealed data unit should be destroyed as
+/// quickly as possible.
+/// The second is to allow compile-time checking of whether sealed or unsealed
+/// data is being used. This allows for strict enforcement of where unencrypted
+/// data is allowed to exist. It also makes it visually obvious to the coder
+/// whether they are using one type or the other.
+/// If data is meant to be public and available without encryption, it is
+/// still stored as sealed data initially. The unsealing process is just a
+/// char-copy rather than a decryption.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct DataCollection(pub Vec<Data>);
-
-/// `Data` stores a unit of data in the redact system. A chunk of
-/// data is a `DataValue` (contained within), which can be a `bool`,
-/// `u64`, `i64`, `f64`, or `string`. Each data is associated with a `DataPath`
-/// which is just a json-style path, and can optionally be encrypted
-/// by a variety of keys as specified by the key names in `encryptedby`.
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
-pub struct Data {
-    path: DataPath,
-    value: DataValueCollection,
+pub enum Data {
+    Sealed(SealedData),
+    Unsealed(UnsealedData),
 }
 
-impl Data {
+/// UnsealedData contains the plaintext value of some data unit.
+/// See the description of 'UnencryptedDataValue` for more information
+/// on possible data types.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UnsealedData {
+    path: DataPath,
+    plaintext: UnencryptedDataValue,
+    keyname: String,
+}
+
+/// SealedDataCollection is returned when a find or search returns
+/// multiple `SealedData` objects
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SealedDataCollection(pub Vec<SealedData>);
+
+/// `SealedData` stores a unit of data in the redact system. It should be
+/// the default type used when passing data around, as it contains no
+/// unencrypted data (unless the data value is purposefully public and
+/// unencrypted). Each data is associated with a `DataPath`
+/// which is just a json-style path.
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+pub struct SealedData {
+    path: DataPath,
+    ciphertexts: DataValueCollection,
+}
+
+impl SealedData {
     /// Builds a new Data struct using the provided values
     pub fn new(path: &str, value: DataValue) -> Self {
-        Data {
+        SealedData {
             path: DataPath::from(path),
-            value: DataValueCollection(vec![value]),
+            ciphertexts: DataValueCollection(vec![value]),
         }
     }
 
@@ -34,11 +70,16 @@ impl Data {
     pub fn path(&self) -> String {
         self.path.to_string()
     }
+
+    /// Decrypts the ciphertext
+    pub fn unseal(&self) -> String {
+        "".to_owned()
+    }
 }
 
-impl Display for Data {
+impl Display for SealedData {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value.to_string())
+        write!(f, "{}", self.ciphertexts.to_string())
     }
 }
 
@@ -63,12 +104,6 @@ pub enum DataValue {
     Unencrypted(UnencryptedDataValue),
 }
 
-// impl Default for DataValue {
-//     fn default() -> Self {
-//         Self::Unencrypted(UnencryptedDataValue::Bool(false))
-//     }
-// }
-
 impl Display for DataValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match *self {
@@ -78,6 +113,13 @@ impl Display for DataValue {
     }
 }
 
+/// `DataType` enumerates all the possible types of data stored in the redact
+/// system. Currently, this is limited to:
+/// - bool
+/// - u64
+/// - i64
+/// - f64
+/// - string
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum DataType {
     Bool,
@@ -99,6 +141,8 @@ impl Display for DataType {
     }
 }
 
+/// `UnencryptedDataValue` stores all possible types of data, as a raw,
+/// unencrypted value stored in its appropriate type
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum UnencryptedDataValue {
     Bool(bool),
@@ -120,6 +164,9 @@ impl Display for UnencryptedDataValue {
     }
 }
 
+/// `EncryptedDataValue` stores a vector of bytes which represent the encrypted
+/// bytes of the value. It also contains a flag indicating its datatype in order
+/// to aid in deserialization, and a keyname which refers to the decryption key.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct EncryptedDataValue {
     value: Vec<u8>,
@@ -138,12 +185,6 @@ impl Display for EncryptedDataValue {
         )
     }
 }
-
-// impl From<DataValue> for String {
-//     fn from(val: DataValue) -> Self {
-//         val.to_string()
-//     }
-// }}
 
 impl From<bool> for DataValue {
     fn from(b: bool) -> Self {
