@@ -1,105 +1,66 @@
-use crate::storage::{error::StorageError, Data, DataCollection, DataStorer};
+// use crate::storage::{Data, DataCollection};
+use crate::cache::{Cacher, error::CacheError};
 use async_trait::async_trait;
-use futures::StreamExt;
-use mongodb::{bson, options::ClientOptions, options::FindOneOptions, Client, Database};
+use std::time::Duration;
+use mobc_redis::{redis, RedisConnectionManager};
+use mobc::{Connection, Pool};
+use mobc_redis::redis::{AsyncCommands};
 
-/// Stores an instance of a redis-backed key value storage
+pub type MobcPool = Pool<RedisConnectionManager>;
+pub type MobcCon = Connection<RedisConnectionManager>;
+
+const CACHE_POOL_MAX_OPEN: u64 = 16;
+const CACHE_POOL_MAX_IDLE: u64 = 8;
+const CACHE_POOL_TIMEOUT_SECONDS: u64 = 1;
+const CACHE_POOL_EXPIRE_SECONDS: u64 = 60;
+
+/// Stores an instance of a redis-backed cache
 #[derive(Clone)]
-pub struct MongoDataStorer {
-    url: String,
-    db_name: String,
-    client: Client,
-    db: Database,
+pub struct RedisCacher {
+    pool: MobcPool,
 }
 
-impl MongoDataStorer {
-    /// Instantiates a mongo-backed data storer using a URL to the mongo cluster and the
-    /// name of the DB to connect to.
-    pub async fn new(url: &str, db_name: &str) -> Self {
-        let db_client_options = ClientOptions::parse_with_resolver_config(
-            url,
-            mongodb::options::ResolverConfig::cloudflare(),
-        )
-            .await
-            .unwrap();
-        let client = Client::with_options(db_client_options).unwrap();
-        let db = client.database(db_name);
-        MongoDataStorer {
-            url: url.to_owned(),
-            db_name: db_name.to_owned(),
-            client,
-            db,
-        }
+impl RedisCacher {
+    pub fn new(connection_string: &str) -> Result<RedisCacher, CacheError> {
+        let client = redis::Client::open(connection_string).map_err(|e| CacheError::InternalError { source: Box::new(e), })?;
+        let manager = RedisConnectionManager::new(client);
+        let pool = Pool::builder()
+            .get_timeout(Some(Duration::from_secs(CACHE_POOL_TIMEOUT_SECONDS)))
+            .max_open(CACHE_POOL_MAX_OPEN)
+            .max_idle(CACHE_POOL_MAX_IDLE)
+            .max_lifetime(Some(Duration::from_secs(CACHE_POOL_EXPIRE_SECONDS)))
+            .build(manager);
+        Ok(RedisCacher { pool })
+    }
+
+    async fn get_con(pool: &MobcPool) -> Result<MobcCon, CacheError> {
+        pool.get().await.map_err(|e| {
+            CacheError::InternalError { source: Box::new(e), }
+        })
     }
 }
 
 #[async_trait]
-impl DataStorer for MongoDataStorer {
-    async fn get(&self, path: &str) -> Result<Data, StorageError> {
-        let filter_options = FindOneOptions::builder().build();
-        let filter = bson::doc! { "path": path };
+impl Cacher for RedisCacher {
 
-        match self
-            .db
-            .collection_with_type::<Data>("data")
-            .find_one(filter, filter_options)
-            .await
-        {
-            Ok(Some(data)) => Ok(data),
-            Ok(None) => Err(StorageError::NotFound),
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
-            }),
-        }
+    async fn set(&self, key: &str, value: &str) -> Result<(), CacheError> {
+        let mut con = RedisCacher::get_con(&self.pool).await?;
+        con.set(key, value).await.map_err(|e| CacheError::InternalError { source: Box::new(e), })
     }
 
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, StorageError> {
-        let filter_options = mongodb::options::FindOptions::builder()
-            .skip(skip)
-            .limit(page_size)
-            .build();
-        let filter = bson::doc! { "path": path };
-
-        match self
-            .db
-            .collection_with_type::<Data>("data")
-            .find(filter, filter_options)
-            .await
-        {
-            Ok(mut cursor) => {
-                let mut data = Vec::new();
-                while let Some(item) = cursor.next().await {
-                    data.push(item.unwrap());
-                }
-                Ok(DataCollection { data })
-            }
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
-            }),
-        }
+    async fn get(&self, key: &str) -> Result<String, CacheError> {
+        let mut con = RedisCacher::get_con(&self.pool).await?;
+        con.get(key).await.map_err(|e| CacheError::InternalError { source: Box::new(e), })
     }
 
-    async fn create(&self, data: Data) -> Result<bool, StorageError> {
-        let filter_options = mongodb::options::ReplaceOptions::builder()
-            .upsert(true)
-            .build();
-        let filter = bson::doc! { "path": data.path() };
+    async fn exists(&self, key: &str) -> Result<bool, CacheError> {
+        let mut con = RedisCacher::get_con(&self.pool).await?;
+        con.exists(key).await.map_err(|e| CacheError::InternalError { source: Box::new(e), })
+    }
 
-        match self
-            .db
-            .collection_with_type::<Data>("data")
-            .replace_one(filter, data, filter_options)
-            .await
-        {
-            Ok(_) => Ok(true),
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
-            }),
-        }
+    async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError> {
+        let mut con = RedisCacher::get_con(&self.pool).await?;
+        con.expire(key, seconds).await.map_err(|e| CacheError::InternalError { source: Box::new(e), })
     }
 }
+
