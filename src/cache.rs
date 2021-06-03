@@ -4,14 +4,15 @@ pub mod redis;
 use async_trait::async_trait;
 use error::CacheError;
 use std::{ops::Deref, sync::Arc};
+use crate::Data;
 
 /// The operations a redact cache struct must be able to fulfill.
 #[async_trait]
-pub trait Cacher: Clone + Send + Sync {
-    async fn set(&self, key: &str, value: &str) -> Result<(), CacheError>;
+pub trait DataCacher: Clone + Send + Sync {
+    async fn set(&self, key: &str, value: Data) -> Result<(), CacheError>;
 
     /// retrieves a cached value using the key
-    async fn get(&self, key: &str) -> Result<String, CacheError>;
+    async fn get(&self, key: &str) -> Result<Data, CacheError>;
 
     /// returns a boolean indicating whether an entry exists with a given key
     async fn exists(&self, key: &str) -> Result<bool, CacheError>;
@@ -20,18 +21,18 @@ pub trait Cacher: Clone + Send + Sync {
     async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError>;
 }
 
-/// Allows an `Arc<FetchCacher>` to act exactly like a `FetchCacher`, dereferencing
-/// itself and passing calls through to the underlying `FetchCacher`.
+/// Allows an `Arc<DataCacher>` to act exactly like a `DataCacher`, dereferencing
+/// itself and passing calls through to the underlying `DataCacher`.
 #[async_trait]
-impl<U> Cacher for Arc<U>
+impl<U> DataCacher for Arc<U>
     where
-        U: Cacher,
+        U: DataCacher,
 {
-    async fn set(&self, key: &str, value: &str) -> Result<(), CacheError> {
+    async fn set(&self, key: &str, value: Data) -> Result<(), CacheError> {
         self.deref().set(key, value).await
     }
 
-    async fn get(&self, key: &str) -> Result<String, CacheError> {
+    async fn get(&self, key: &str) -> Result<Data, CacheError> {
         self.deref().get(key).await
     }
 
@@ -45,21 +46,21 @@ impl<U> Cacher for Arc<U>
 }
 
 pub mod tests {
-    use crate::{Cacher, CacheError};
+    use crate::{DataCacher, CacheError, Data};
     use async_trait::async_trait;
     use mockall::predicate::*;
     use mockall::*;
 
     mock! {
-    pub Cacher {}
+    pub DataCacher {}
     #[async_trait]
-    impl Cacher for Cacher {
-        async fn set(&self, key: &str, value: &str) -> Result<(), CacheError>;
-        async fn get(&self, key: &str) -> Result<String, CacheError>;
+    impl DataCacher for DataCacher {
+        async fn set(&self, key: &str, value: Data) -> Result<(), CacheError>;
+        async fn get(&self, key: &str) -> Result<Data, CacheError>;
         async fn exists(&self, key: &str) -> Result<bool, CacheError>;
         async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError>;
     }
-    impl Clone for Cacher {
+    impl Clone for DataCacher {
         fn clone(&self) -> Self;
     }
     }
