@@ -26,6 +26,6 @@ mongodb = "1.2.1"
 reqwest = { version = "0.11.0", features = ["json"] }
 mockall = "0.9.0"
 
-mobc = "0.7.0"
-redis = "0.16.0"
+mobc = "0.7.2"
+redis = "0.20.1"
 mobc-redis = "0.7.0"
