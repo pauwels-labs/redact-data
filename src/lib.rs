@@ -23,5 +23,5 @@ pub use data::{
 pub use storage::{
     error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer,
 };pub use cache::{
-    error::CacheError, Cacher
+    error::CacheError, DataCacher
 };
