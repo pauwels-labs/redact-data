@@ -46,7 +46,8 @@ impl ToRedisArgs for Data {
         where
             W: ?Sized + RedisWrite,
     {
-        out.write_arg(self.to_string().as_bytes())
+        let s: String = serde_json::to_string(self).unwrap();
+        out.write_arg(s.as_bytes())
     }
 }
 
@@ -81,4 +82,3 @@ impl DataCacher for RedisDataCacher {
         con.expire(key, seconds).await.map_err(|e| CacheError::InternalError { source: Box::new(e), })
     }
 }
-
