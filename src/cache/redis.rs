@@ -3,9 +3,8 @@ use async_trait::async_trait;
 use std::time::Duration;
 use mobc_redis::{redis, RedisConnectionManager};
 use mobc::{Connection, Pool};
-use mobc_redis::redis::{AsyncCommands, ToRedisArgs, FromRedisValue, RedisWrite, RedisResult, Value, from_redis_value, RedisError};
+use mobc_redis::redis::{AsyncCommands, ToRedisArgs, FromRedisValue, RedisWrite, RedisResult, Value, from_redis_value, ErrorKind};
 use crate::Data;
-use std::io::{Error, ErrorKind};
 
 pub type MobcPool = Pool<RedisConnectionManager>;
 pub type MobcCon = Connection<RedisConnectionManager>;
@@ -54,7 +53,7 @@ impl ToRedisArgs for Data {
 impl FromRedisValue for Data {
     fn from_redis_value(v: &Value) -> RedisResult<Data> {
         let s: String = from_redis_value(v)?;
-        let d: Data = serde_json::from_str(&s).map_err(|_e| Error::new(ErrorKind::Other, "deserialization error!"))?;
+        let d: Data = serde_json::from_str(&s).map_err(|_e| (ErrorKind::TypeError, "deserialization error!"))?;
         Ok(d)
     }
 }
