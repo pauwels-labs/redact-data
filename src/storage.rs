@@ -53,7 +53,6 @@ where
 }
 
 /// Stores an instance of a redact-backed data storer, including a cache.
-/// The redact-store server is an example implementation of a cached redact storage backing.
 #[derive(Clone)]
 pub struct CachedDataStorer<T: DataStorer, V: DataCacher> {
     storer: T,
@@ -61,7 +60,7 @@ pub struct CachedDataStorer<T: DataStorer, V: DataCacher> {
 }
 
 impl<T: DataStorer, V: DataCacher> CachedDataStorer<T, V> {
-    /// Instantiates a cached redact-backed data storer using a URL to the storage server and a data cacher.
+    /// Instantiates a cached redact-backed data storer using an existing storer and cacher.
     pub fn new(storer: T, cacher: V) -> CachedDataStorer<T,V>
         where
             T: DataStorer,
@@ -170,7 +169,7 @@ pub mod tests {
         storer.expect_get()
             .times(1)
             .returning(|_| {
-                Ok( Data::new(".path.", DataValue::Unencrypted(UnencryptedDataValue::I64(1))))
+                Ok(Data::new(".path.", DataValue::Unencrypted(UnencryptedDataValue::I64(1))))
             });;
         cacher.expect_set()
             .times(1)
