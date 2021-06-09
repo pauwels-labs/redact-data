@@ -1,6 +1,53 @@
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Display;
+use crate::CacheError;
+
+/// Error type that converts to a warp::Rejection
+#[derive(Debug)]
+pub enum DataStorerError {
+    /// Represents an error which occurred while interacting with the cache
+    CacheError {
+        source: CacheError,
+    },
+
+    /// Indicates an error which occured while interacting with the storage
+    StorageError {
+        source: StorageError
+    },
+}
+
+impl Error for DataStorerError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match *self {
+            DataStorerError::CacheError { ref source } => Some(source),
+            DataStorerError::StorageError { ref source } => Some(source)
+        }
+    }
+}
+
+impl Display for DataStorerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            DataStorerError::CacheError { .. } => {
+                // TODO: display source error
+                write!(f, "Cache error")
+            }
+            DataStorerError::StorageError { .. } => {
+                // TODO: display source error
+                write!(f, "Storage error")
+            }
+        }
+    }
+}
+
+impl From<CacheError> for DataStorerError {
+    fn from(e: CacheError) -> DataStorerError {
+        DataStorerError::CacheError {
+            source: e
+        }
+    }
+}
 
 /// Error type that converts to a warp::Rejection
 #[derive(Debug)]

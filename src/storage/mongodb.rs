@@ -2,6 +2,7 @@ use crate::storage::{error::StorageError, Data, DataCollection, DataStorer};
 use async_trait::async_trait;
 use futures::StreamExt;
 use mongodb::{bson, options::ClientOptions, options::FindOneOptions, Client, Database};
+use crate::DataStorerError;
 
 /// Stores an instance of a mongodb-backed data storer
 #[derive(Clone)]
@@ -35,7 +36,7 @@ impl MongoDataStorer {
 
 #[async_trait]
 impl DataStorer for MongoDataStorer {
-    async fn get(&self, path: &str) -> Result<Data, StorageError> {
+    async fn get(&self, path: &str) -> Result<Data, DataStorerError> {
         let filter_options = FindOneOptions::builder().build();
         let filter = bson::doc! { "path": path };
 
@@ -46,9 +47,13 @@ impl DataStorer for MongoDataStorer {
             .await
         {
             Ok(Some(data)) => Ok(data),
-            Ok(None) => Err(StorageError::NotFound),
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
+            Ok(None) => Err(DataStorerError::StorageError {
+                source: StorageError::NotFound
+            }),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }
@@ -58,7 +63,7 @@ impl DataStorer for MongoDataStorer {
         path: &str,
         skip: i64,
         page_size: i64,
-    ) -> Result<DataCollection, StorageError> {
+    ) -> Result<DataCollection, DataStorerError> {
         let filter_options = mongodb::options::FindOptions::builder()
             .skip(skip)
             .limit(page_size)
@@ -78,13 +83,15 @@ impl DataStorer for MongoDataStorer {
                 }
                 Ok(DataCollection(data))
             }
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }
 
-    async fn create(&self, data: Data) -> Result<bool, StorageError> {
+    async fn create(&self, data: Data) -> Result<bool, DataStorerError> {
         let filter_options = mongodb::options::ReplaceOptions::builder()
             .upsert(true)
             .build();
@@ -97,8 +104,10 @@ impl DataStorer for MongoDataStorer {
             .await
         {
             Ok(_) => Ok(true),
-            Err(e) => Err(StorageError::InternalError {
-                source: Box::new(e),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }

@@ -1,4 +1,4 @@
-use crate::{Data, DataCollection, DataStorer, StorageError};
+use crate::{Data, DataCollection, DataStorer, StorageError, DataStorerError};
 use async_trait::async_trait;
 
 /// Stores an instance of a redact-backed data storer.
@@ -19,16 +19,20 @@ impl RedactDataStorer {
 
 #[async_trait]
 impl DataStorer for RedactDataStorer {
-    async fn get(&self, path: &str) -> Result<Data, StorageError> {
+    async fn get(&self, path: &str) -> Result<Data, DataStorerError> {
         match reqwest::get(&format!("{}/data/{}", self.url, path)).await {
             Ok(r) => Ok(r
                 .json::<Data>()
                 .await
-                .map_err(|source| StorageError::InternalError {
-                    source: Box::new(source),
+                .map_err(|source| DataStorerError::StorageError {
+                    source: StorageError::InternalError {
+                        source: Box::new(source),
+                    }
                 })?),
-            Err(source) => Err(StorageError::InternalError {
-                source: Box::new(source),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }
@@ -38,7 +42,7 @@ impl DataStorer for RedactDataStorer {
         path: &str,
         skip: i64,
         page_size: i64,
-    ) -> Result<DataCollection, StorageError> {
+    ) -> Result<DataCollection, DataStorerError> {
         match reqwest::get(&format!(
             "{}/data/{}?skip={}&page_size={}",
             self.url, path, skip, page_size
@@ -46,17 +50,21 @@ impl DataStorer for RedactDataStorer {
         .await
         {
             Ok(r) => Ok(r.json::<DataCollection>().await.map_err(|source| {
-                StorageError::InternalError {
-                    source: Box::new(source),
+                DataStorerError::StorageError {
+                    source: StorageError::InternalError {
+                        source: Box::new(source),
+                    }
                 }
             })?),
-            Err(source) => Err(StorageError::InternalError {
-                source: Box::new(source),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }
 
-    async fn create(&self, data: Data) -> Result<bool, StorageError> {
+    async fn create(&self, data: Data) -> Result<bool, DataStorerError> {
         match reqwest::Client::new()
             .post(&format!("{}/data?path={}", self.url, data.path()))
             .json(&data)
@@ -64,8 +72,10 @@ impl DataStorer for RedactDataStorer {
             .await
         {
             Ok(_) => Ok(true),
-            Err(source) => Err(StorageError::InternalError {
-                source: Box::new(source),
+            Err(e) => Err(DataStorerError::StorageError {
+                source: StorageError::InternalError {
+                    source: Box::new(e)
+                }
             }),
         }
     }

@@ -21,7 +21,7 @@ pub use data::{
     UnencryptedDataValue,
 };
 pub use storage::{
-    error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer,
+    error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer, CachedDataStorer, error::DataStorerError
 };pub use cache::{
-    error::CacheError, DataCacher
+    error::CacheError, DataCacher, tests::MockDataCacher
 };
