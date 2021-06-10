@@ -19,6 +19,8 @@ pub trait DataCacher: Clone + Send + Sync {
 
     /// sets the cache entry's expiration in seconds
     async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError>;
+
+    fn get_default_key_expiration_seconds(&self) -> usize;
 }
 
 /// Allows an `Arc<DataCacher>` to act exactly like a `DataCacher`, dereferencing
@@ -43,6 +45,10 @@ impl<U> DataCacher for Arc<U>
     async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError> {
         self.deref().expire(key, seconds).await
     }
+
+    fn get_default_key_expiration_seconds(&self) -> usize {
+        self.deref().get_default_key_expiration_seconds()
+    }
 }
 
 pub mod tests {
@@ -59,6 +65,7 @@ pub mod tests {
         async fn get(&self, key: &str) -> Result<Data, CacheError>;
         async fn exists(&self, key: &str) -> Result<bool, CacheError>;
         async fn expire(&self, key: &str, seconds: usize) -> Result<bool, CacheError>;
+        fn get_default_key_expiration_seconds(&self) -> usize;
     }
     impl Clone for DataCacher {
         fn clone(&self) -> Self;

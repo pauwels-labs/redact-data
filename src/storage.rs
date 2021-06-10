@@ -78,7 +78,10 @@ impl<T: DataStorer, V: DataCacher> DataStorer for CachedDataStorer<T, V> {
     async fn get(&self, path: &str) -> Result<Data, DataStorerError> {
         let cache_hit = self.cacher.exists(path).await?;
         if cache_hit {
-            self.cacher.expire(path, 60).await?;
+            self.cacher.expire(
+                path,
+                self.cacher.get_default_key_expiration_seconds())
+                .await?;
             self.cacher.get(path).await.map_err(|source| {
                 DataStorerError::CacheError {
                     source: source
@@ -142,6 +145,8 @@ pub mod tests {
         cacher.expect_expire()
             .times(1)
             .returning(|_, _| { Ok(true) });
+        cacher.expect_get_default_key_expiration_seconds()
+            .returning(|| {60});
         cacher.expect_get()
             .times(1)
             .returning(|_| {
@@ -170,7 +175,7 @@ pub mod tests {
             .times(1)
             .returning(|_| {
                 Ok(Data::new(".path.", DataValue::Unencrypted(UnencryptedDataValue::I64(1))))
-            });;
+            });
         cacher.expect_set()
             .times(1)
             .withf(|path: &str, d: &Data| d.path() == ".path." && path == ".path.")
