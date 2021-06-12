@@ -14,11 +14,14 @@
 
 mod data;
 pub mod storage;
+pub mod cache;
 
 pub use data::{
     Data, DataCollection, DataPath, DataType, DataValue, DataValueCollection, EncryptedDataValue,
     UnencryptedDataValue,
 };
 pub use storage::{
-    error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer,
+    error::StorageError, mongodb::MongoDataStorer, redact::RedactDataStorer, DataStorer, CachedDataStorer, error::DataStorerError
+};pub use cache::{
+    error::CacheError, DataCacher, tests::MockDataCacher
 };
