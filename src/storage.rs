@@ -15,14 +15,6 @@ pub trait DataStorer: Clone + Send + Sync {
     /// Fetches one instance of a `Data` stored at that path.
     /// If the `Data` is an array, the first retrieved element is returned.
     async fn get(&self, path: &str) -> Result<Data, DataStorerError>;
-    /// Fetches all the instances of `Data` stored at that path.
-    /// Use this if retrieving an array of `Data`.
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError>;
     /// Serializes a piece of `Data` to the the database.
     async fn create(&self, data: Data) -> Result<bool, DataStorerError>;
 }
@@ -36,15 +28,6 @@ where
 {
     async fn get(&self, path: &str) -> Result<Data, DataStorerError> {
         self.deref().get(path).await
-    }
-
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        self.deref().get_collection(path, skip, page_size).await
     }
 
     async fn create(&self, value: Data) -> Result<bool, DataStorerError> {
@@ -94,19 +77,10 @@ impl<T: DataStorer, V: DataCacher> DataStorer for CachedDataStorer<T, V> {
         }
     }
 
-    // to be removed
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        self.storer.get_collection(path, skip, page_size).await
-    }
-
     async fn create(&self, value: Data) -> Result<bool, DataStorerError> {
+        self.storer.create(value).await?;
         self.cacher.set(&value.path(), value.clone()).await?;
-        self.storer.create(value).await
+        Ok(true)
     }
 }
 

@@ -5,11 +5,6 @@ use std::{
     vec::Vec,
 };
 
-/// DataCollection is returned when a find or search returns
-/// multiple Data objects
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DataCollection(pub Vec<Data>);
-
 /// `Data` stores a unit of data in the redact system. A chunk of
 /// data is a `DataValue` (contained within), which can be a `bool`,
 /// `u64`, `i64`, `f64`, or `string`. Each data is associated with a `DataPath`

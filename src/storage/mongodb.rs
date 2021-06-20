@@ -1,4 +1,4 @@
-use crate::storage::{error::StorageError, Data, DataCollection, DataStorer};
+use crate::storage::{error::StorageError, Data, DataStorer};
 use async_trait::async_trait;
 use futures::StreamExt;
 use mongodb::{bson, options::ClientOptions, options::FindOneOptions, Client, Database};
@@ -50,39 +50,6 @@ impl DataStorer for MongoDataStorer {
             Ok(None) => Err(DataStorerError::StorageError {
                 source: StorageError::NotFound
             }),
-            Err(e) => Err(DataStorerError::StorageError {
-                source: StorageError::InternalError {
-                    source: Box::new(e)
-                }
-            }),
-        }
-    }
-
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        let filter_options = mongodb::options::FindOptions::builder()
-            .skip(skip)
-            .limit(page_size)
-            .build();
-        let filter = bson::doc! { "path": path };
-
-        match self
-            .db
-            .collection_with_type::<Data>("data")
-            .find(filter, filter_options)
-            .await
-        {
-            Ok(mut cursor) => {
-                let mut data = Vec::new();
-                while let Some(item) = cursor.next().await {
-                    data.push(item.unwrap());
-                }
-                Ok(DataCollection(data))
-            }
             Err(e) => Err(DataStorerError::StorageError {
                 source: StorageError::InternalError {
                     source: Box::new(e)
