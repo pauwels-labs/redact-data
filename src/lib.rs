@@ -17,7 +17,7 @@ pub mod storage;
 pub mod cache;
 
 pub use data::{
-    Data, DataCollection, DataPath, DataType, DataValue, DataValueCollection, EncryptedDataValue,
+    Data, DataPath, DataType, DataValue, DataValueCollection, EncryptedDataValue,
     UnencryptedDataValue,
 };
 pub use storage::{

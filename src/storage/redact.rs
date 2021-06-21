@@ -1,4 +1,4 @@
-use crate::{Data, DataCollection, DataStorer, StorageError, DataStorerError};
+use crate::{Data, DataStorer, StorageError, DataStorerError};
 use async_trait::async_trait;
 
 /// Stores an instance of a redact-backed data storer.
@@ -29,33 +29,6 @@ impl DataStorer for RedactDataStorer {
                         source: Box::new(source),
                     }
                 })?),
-            Err(e) => Err(DataStorerError::StorageError {
-                source: StorageError::InternalError {
-                    source: Box::new(e)
-                }
-            }),
-        }
-    }
-
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        match reqwest::get(&format!(
-            "{}/data/{}?skip={}&page_size={}",
-            self.url, path, skip, page_size
-        ))
-        .await
-        {
-            Ok(r) => Ok(r.json::<DataCollection>().await.map_err(|source| {
-                DataStorerError::StorageError {
-                    source: StorageError::InternalError {
-                        source: Box::new(source),
-                    }
-                }
-            })?),
             Err(e) => Err(DataStorerError::StorageError {
                 source: StorageError::InternalError {
                     source: Box::new(e)

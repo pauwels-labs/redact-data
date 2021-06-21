@@ -2,7 +2,7 @@ pub mod error;
 pub mod mongodb;
 pub mod redact;
 
-use crate::data::{Data, DataCollection};
+use crate::data::Data;
 use async_trait::async_trait;
 use std::{ops::Deref, sync::Arc};
 use crate::{DataCacher};
@@ -15,14 +15,6 @@ pub trait DataStorer: Clone + Send + Sync {
     /// Fetches one instance of a `Data` stored at that path.
     /// If the `Data` is an array, the first retrieved element is returned.
     async fn get(&self, path: &str) -> Result<Data, DataStorerError>;
-    /// Fetches all the instances of `Data` stored at that path.
-    /// Use this if retrieving an array of `Data`.
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError>;
     /// Serializes a piece of `Data` to the the database.
     async fn create(&self, data: Data) -> Result<bool, DataStorerError>;
 }
@@ -36,15 +28,6 @@ where
 {
     async fn get(&self, path: &str) -> Result<Data, DataStorerError> {
         self.deref().get(path).await
-    }
-
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        self.deref().get_collection(path, skip, page_size).await
     }
 
     async fn create(&self, value: Data) -> Result<bool, DataStorerError> {
@@ -94,24 +77,15 @@ impl<T: DataStorer, V: DataCacher> DataStorer for CachedDataStorer<T, V> {
         }
     }
 
-    // to be removed
-    async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-    ) -> Result<DataCollection, DataStorerError> {
-        self.storer.get_collection(path, skip, page_size).await
-    }
-
     async fn create(&self, value: Data) -> Result<bool, DataStorerError> {
+        self.storer.create(value.clone()).await?;
         self.cacher.set(&value.path(), value.clone()).await?;
-        self.storer.create(value).await
+        Ok(true)
     }
 }
 
 pub mod tests {
-    use crate::{Data, DataCollection, DataStorer, DataStorerError, MockDataCacher, CachedDataStorer, DataValue, UnencryptedDataValue};
+    use crate::{Data, DataStorer, DataStorerError, MockDataCacher, CachedDataStorer, DataValue, UnencryptedDataValue};
     use async_trait::async_trait;
     use mockall::predicate::*;
     use mockall::*;
@@ -121,12 +95,6 @@ pub mod tests {
     #[async_trait]
     impl DataStorer for DataStorer {
         async fn get(&self, path: &str) -> Result<Data, DataStorerError>;
-        async fn get_collection(
-        &self,
-        path: &str,
-        skip: i64,
-        page_size: i64,
-        ) -> Result<DataCollection, DataStorerError>;
         async fn create(&self, data: Data) -> Result<bool, DataStorerError>;
     }
     impl Clone for DataStorer {
