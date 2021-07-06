@@ -1,5 +1,6 @@
-# redact-data
-[![](http://meritbadge.herokuapp.com/redact-data)](https://crates.io/crates/redact-data) [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-yellow.svg)](https://opensource.org/licenses/GPL-3.0) [![Coverage Status](https://coveralls.io/repos/github/pauwels-labs/redact-data/badge.svg?branch=main)](https://coveralls.io/github/pauwels-labs/redact-data?branch=main)
+# DEPRECATED - redact-data
+
+This repository has been deprecated and all relevant code migrated to [redact-crypto](https://github.com/pauwels-labs/redact-crypto).
 
 Contains all data and data storage abstractions for the Redact framework.
 
